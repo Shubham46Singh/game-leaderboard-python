@@ -1,0 +1,53 @@
+
+version: 2.1
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:stable
+
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      - run:
+          name: Verify Docker Hub credentials
+          command: |
+            set -eu
+            test -n "${DOCKERHUB_USER:-}" || {
+              echo "ERROR: DOCKERHUB_USER is missing"
+              exit 1
+            }
+            test -n "${DOCKERHUB_PASS:-}" || {
+              echo "ERROR: DOCKERHUB_PASS is missing"
+              exit 1
+            }
+            echo "Required credential variables are present."
+
+      - run:
+          name: Build Docker Image
+          command: |
+            set -eu
+            docker build -t "${DOCKERHUB_USER}/game-leaderboard:qa" .
+
+      - run:
+          name: Login to Docker Hub
+          command: |
+            set -eu
+            echo "$DOCKERHUB_PASS" | docker login \
+              --username "$DOCKERHUB_USER" \
+              --password-stdin
+
+      - run:
+          name: Push Image to Docker Hub
+          command: |
+            set -eu
+            docker push "${DOCKERHUB_USER}/game-leaderboard:qa"
+
+workflows:
+  build-deploy:
+    jobs:
+      - build-and-push:
+          filters:
+            branches:
+              only: main
