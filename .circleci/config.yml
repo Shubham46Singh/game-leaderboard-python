@@ -1,0 +1,26 @@
+version: 2.1
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t keerthimanjunath/game-leaderboard:qa .
+      - run:
+          name: Push to Docker Hub
+          command: |
+            echo "$DOCKERHUB_PASS" | docker login -u "keerthimanjunath" --password-stdin
+            docker push keerthimanjunath/game-leaderboard:qa
+
+workflows:
+  build-deploy:
+    jobs:
+      - build-and-push:
+          filters:
+            branches:
+              only: main
